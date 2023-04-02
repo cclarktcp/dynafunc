@@ -106,7 +106,6 @@ def _make_params(args=None, varargs=None, kwonly=None,
             params[name] = p 
     
     if varargs and is_present(varargs):
-        print(varargs)
         if isinstance(varargs, tuple):
             name, default = varargs
         else:
@@ -387,7 +386,6 @@ def combine_co_flags(*co_flags):
     bitmaps = [
         code_flags_to_bitmap(flagset) for flagset in co_flags
     ]
-    print(co_flags, bitmaps)
     bitmap = functools.reduce(_co_flags_reducer, bitmaps, dict())
     return bitmap_to_code_flags(bitmap)
 
@@ -599,7 +597,6 @@ def _code_prop_reducer(props1, props2):
     else:
         co_names_all = tuple()
 
-    print(props1, props2)
     flags = combine_co_flags(flags1, flags2)
     props['co_flags'] = flags
     props['co_varnames'] = tuple(vars_)
@@ -653,7 +650,6 @@ def make_function(code, global_vars=None, name=NotPresent,
 
     if not is_present(name):
         name = None
-    print(argdefs)
     return FunctionType(code, global_vars, name, argdefs, closure)
 
 

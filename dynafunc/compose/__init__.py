@@ -28,6 +28,28 @@ COMPOSE_WRAPS_ASSIGN = (
     '__annotations__', '__defaults__')
 
 
+def _function_defaults(signature, only_present: bool = True):
+    defs = dict()
+    for k,v in signature.parameters.items():
+        default = v.default
+        if default is inspect._empty and not only_present:
+            defs[k] = NotPresent
+        elif default is not inspect._empty:
+            defs[k] = default
+    return defs 
+
+
+def _real_args_kwargs(signature, *args, **kwargs):
+    binding = signature.bind_partial(*args, **kwargs)
+    given_args = binding.arguments
+    default_args = _function_defaults(signature, only_present=True)
+    need_to_pass = set(default_args) - set(given_args)
+    kw = {k:default_args[k] for k in need_to_pass}
+    kw.update(kwargs)
+    return args, kw
+
+
+
 def compose_function(
     sig: Callable,
     handler: Callable,
@@ -47,12 +69,8 @@ def compose_function(
     funcsig = inspect.signature(sig)
     @wraps(sig, assigned=COMPOSE_WRAPS_ASSIGN)
     def wrapper(*args, **kwargs):
-        binding = funcsig.bind_partial(*args, **kwargs)
-        binding.apply_defaults()
-        args = binding.args 
-        kwargs = binding.kwargs
-        print(f"compose_function wrapper args={args} kwargs={kwargs}")
-        return executor(sig, handler, args, kwargs)
+        args_, kwargs_ = _real_args_kwargs(funcsig, *args, **kwargs)
+        return executor(sig, handler, args_, kwargs_)
     return wrapper
 
 
@@ -75,18 +93,11 @@ def compose_functions(
         form (handler, result). If silent is True, the `result` can be an
         exception
 
-    Raises:
-        if silent is False and a handler raises an exception, that exception
-        is raised
-
     """
     funcsig = inspect.signature(sig)
     @wraps(sig, assigned=COMPOSE_WRAPS_ASSIGN)
     def wrapper(*args, **kwargs):
-        binding = funcsig.bind_partial(*args, **kwargs)
-        binding.apply_defaults()
-        args = binding.args 
-        kwargs = binding.kwargs
-        return strategy(sig, handlers, executor, args, kwargs)
+        args_, kwargs_ = _real_args_kwargs(funcsig, *args, **kwargs)
+        return strategy(sig, handlers, executor, args_, kwargs_)
 
     return wrapper
